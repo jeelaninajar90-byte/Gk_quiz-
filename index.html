@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GK Quiz - 1000 Levels</title>
+
+<!-- ✅ PopCash Verification -->
+<meta name="ppck-ver" content="556710499fb5e0a5106abe0a469ff325" />
+
+<style>
+body { font-family:'Poppins',sans-serif; margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; transition:background 0.5s; color:#fff;}
+.container { max-width:600px; width:90%; background: rgba(255,255,255,0.05); border-radius:20px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+.level { font-weight:600;}
+.question { font-size:20px; font-weight:600; margin-bottom:15px;}
+.options { display:grid; gap:10px;}
+.option { background: rgba(255,255,255,0.08); border:none; padding:12px; border-radius:12px; color:#fff; cursor:pointer; font-size:16px; transition:0.2s;}
+.option:hover { background: rgba(255,255,255,0.15);}
+.correct { background: #16a34a !important;}
+.wrong { background: #dc2626 !important;}
+.progress-bar { background: rgba(255,255,255,0.1); height:8px; border-radius:5px; overflow:hidden; margin-bottom:10px;}
+.progress { height:8px; background:#3b82f6; width:0%; transition:width 0.3s;}
+.timer { font-weight:600; margin-bottom:10px; text-align:right; }
+.footer { text-align:center; margin-top:15px; font-size:14px; color:#94a3b8;}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div>GK Quiz</div>
+    <div class="level" id="levelDisplay">Level: 1</div>
+    <div id="scoreDisplay">Score: 0</div>
+  </div>
+  <div class="timer" id="timerDisplay">Time: 15s</div>
+  <div class="progress-bar"><div class="progress" id="progress"></div></div>
+  <div id="quiz">
+    <div id="question" class="question"></div>
+    <div id="options" class="options"></div>
+  </div>
+  <div class="footer">Made with ❤️ — Works offline</div>
+</div>
+
+<script>
+// --- GK question pool ---
+const questionPool = [
+  {q:'What is the capital of India?', options:['Mumbai','Delhi','Kolkata','Chennai'], answer:1},
+  {q:'Who wrote the National Anthem?', options:['Tagore','Bankim Chandra','Kavi Pradeep','Sarojini Naidu'], answer:0},
+  {q:'Which planet is known as the Red Planet?', options:['Venus','Mars','Jupiter','Mercury'], answer:1},
+  {q:'Who was the first President of India?', options:['Rajendra Prasad','Zakir Hussain','V.V. Giri','Abdul Kalam'], answer:0},
+  {q:'Longest river in the world?', options:['Amazon','Nile','Yangtze','Mississippi'], answer:1},
+  {q:'Who discovered Penicillin?', options:['Marie Curie','Alexander Fleming','Louis Pasteur','Einstein'], answer:1},
+  {q:'Largest ocean on Earth?', options:['Atlantic','Indian','Pacific','Arctic'], answer:2},
+  {q:'Which country hosted 2020 Olympics?', options:['China','Japan','USA','UK'], answer:1},
+  {q:'Father of Computers?', options:['Charles Babbage','Alan Turing','Bill Gates','Steve Jobs'], answer:0},
+  {q:'Gas absorbed by plants for photosynthesis?', options:['Oxygen','CO2','Nitrogen','Hydrogen'], answer:1},
+  {q:'Capital of France?', options:['Paris','London','Berlin','Rome'], answer:0},
+  {q:'Author of Hamlet?', options:['Dickens','Shakespeare','Twain','Tolstoy'], answer:1},
+  {q:'Smallest continent by area?', options:['Australia','Europe','Antarctica','South America'], answer:0},
+  {q:'Currency of Japan?', options:['Yen','Dollar','Euro','Rupee'], answer:0},
+  {q:'Which element has symbol Fe?', options:['Iron','Fluorine','Fermium','Francium'], answer:0},
+  {q:'Who painted the Mona Lisa?', options:['Van Gogh','Leonardo da Vinci','Picasso','Michelangelo'], answer:1},
+  {q:'Fastest land animal?', options:['Cheetah','Lion','Tiger','Leopard'], answer:0},
+  {q:'Largest desert in the world?', options:['Sahara','Gobi','Kalahari','Arabian'], answer:0},
+  {q:'First man on the moon?', options:['Neil Armstrong','Buzz Aldrin','Yuri Gagarin','Michael Collins'], answer:0},
+  {q:'Who invented telephone?', options:['Alexander Graham Bell','Thomas Edison','Nikola Tesla','Guglielmo Marconi'], answer:0},
+];
+
+const totalLevels = 1000;
+const questionsPerLevel = 5;
+const minScoreToPass = 30;
+
+const levels = [];
+for(let lvl=0; lvl<totalLevels; lvl++){
+  const shuffledPool = [...questionPool].sort(()=>0.5-Math.random());
+  const questions = shuffledPool.slice(0,questionsPerLevel).map(q=>{
+    const opts = q.options.map((opt,i)=>({text:opt, idx:i})).sort(()=>Math.random()-0.5);
+    return {q:q.q, options:opts, answer:q.answer};
+  });
+  levels.push({minScore:minScoreToPass, questions});
+}
+
+let currentLevel = 0;
+let currentIndex = 0;
+let score = 0;
+let levelScore = 0;
+const timerLimit = 15;
+let timer, timeLeft;
+
+const questionEl = document.getElementById('question');
+const optionsEl = document.getElementById('options');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const progressEl = document.getElementById('progress');
+const levelDisplay = document.getElementById('levelDisplay');
+const timerDisplay = document.getElementById('timerDisplay');
+
+function startTimer(){
+  clearInterval(timer);
+  timeLeft = timerLimit;
+  timerDisplay.textContent = `Time: ${timeLeft}s`;
+  timer = setInterval(()=>{
+    timeLeft--;
+    timerDisplay.textContent = `Time: ${timeLeft}s`;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      skipQuestion();
+    }
+  },1000);
+}
+
+function loadQuestion(){
+  startTimer();
+  const current = levels[currentLevel].questions[currentIndex];
+  questionEl.textContent = `${currentIndex+1}. ${current.q}`;
+  optionsEl.innerHTML = '';
+  current.options.forEach(optObj=>{
+    const btn = document.createElement('button');
+    btn.textContent = optObj.text;
+    btn.className = 'option';
+    btn.addEventListener('click',()=>selectAnswer(optObj.idx,btn));
+    optionsEl.appendChild(btn);
+  });
+  updateProgress();
+  document.body.style.background = `linear-gradient(135deg, hsl(${(currentLevel+1)%360*0.36},70%,15%), hsl(${(currentLevel+1)%360*0.36},70%,25%))`;
+}
+
+function selectAnswer(i,btn){
+  clearInterval(timer);
+  const correct = levels[currentLevel].questions[currentIndex].answer;
+  const buttons = document.querySelectorAll('.option');
+  buttons.forEach(b=>b.disabled=true);
+  if(i===correct){
+    btn.classList.add('correct');
+    score+=10;
+    levelScore+=10;
+  } else {
+    btn.classList.add('wrong');
+  }
+  scoreDisplay.textContent = `Score: ${score}`;
+  setTimeout(nextQuestion, 1000);
+}
+
+function skipQuestion(){
+  const buttons = document.querySelectorAll('.option');
+  buttons.forEach(b=>b.disabled=true);
+  setTimeout(nextQuestion, 1000);
+}
+
+function nextQuestion(){
+  currentIndex++;
+  const levelData = levels[currentLevel];
+  if(currentIndex >= levelData.questions.length){
+    if(levelScore >= levelData.minScore){
+      alert(`Level ${currentLevel+1} Complete!\nScore: ${levelScore}\nProceeding to next level.`);
+      currentLevel++;
+      currentIndex=0;
+      levelScore=0;
+    } else {
+      alert(`Level ${currentLevel+1} Not Passed!\nScore: ${levelScore}\nReplay this level.`);
+      currentIndex=0;
+      levelScore=0;
+    }
+  }
+  if(currentLevel < levels.length){
+    levelDisplay.textContent = `Level: ${currentLevel+1}`;
+    loadQuestion();
+  } else {
+    showResult();
+  }
+}
+
+function showResult(){
+  clearInterval(timer);
+  questionEl.textContent = `Quiz Complete!`;
+  optionsEl.innerHTML = `<h2>Your Total Score: ${score}</h2>`;
+  progressEl.style.width = '100%';
+}
+
+function updateProgress(){
+  const progress = ((currentIndex + currentLevel*questionsPerLevel)/(levels.length*questionsPerLevel))*100;
+  progressEl.style.width = progress+'%';
+}
+
+loadQuestion();
+</script>
+
+<!-- ✅ PopCash Ads Script (after verification) -->
+<script data-cfasync="false" src="https://publisherconfig.popcash.net/pop.js"></script>
+<script>
+  popcash(popcash_pub = "YOUR_USER_ID_HERE"); 
+</script>
+
+</body>
+</html>
