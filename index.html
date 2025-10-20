@@ -1,14 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
+
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GK Quiz - 1000 Levels</title>
-
-<!-- ✅ PopCash Verification -->
-<meta name="ppck-ver" content="3acdddb1dd83cc228576099b53456003" />
-
-<style>
+<title>GK Quiz - 1000 Levels</title><!-- ✅ PopCash Verification --><meta name="ppck-ver" content="3acdddb1dd83cc228576099b53456003" /><style>
 body { font-family:'Poppins',sans-serif; margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; transition:background 0.5s; color:#fff;}
 .container { max-width:600px; width:90%; background: rgba(255,255,255,0.05); border-radius:20px; padding:20px; box-shadow:0 4px 20px rgba(0,0,0,0.3);}
 .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
@@ -23,8 +18,9 @@ body { font-family:'Poppins',sans-serif; margin:0; display:flex; justify-content
 .progress { height:8px; background:#3b82f6; width:0%; transition:width 0.3s;}
 .timer { font-weight:600; margin-bottom:10px; text-align:right; }
 .footer { text-align:center; margin-top:15px; font-size:14px; color:#94a3b8;}
-</style>
-</head>
+#rewardAdBtn { display:none; padding:10px 20px; background:#28a745; border:none; border-radius:10px; cursor:pointer; margin-top:10px; font-size:16px;}
+#rewardAdBtn:hover { background:#218838;}
+</style></head>
 <body>
 <div class="container">
   <div class="header">
@@ -38,10 +34,9 @@ body { font-family:'Poppins',sans-serif; margin:0; display:flex; justify-content
     <div id="question" class="question"></div>
     <div id="options" class="options"></div>
   </div>
+  <button id="rewardAdBtn">Watch Ad to Unlock Next Level 🔓</button>
   <div class="footer">Made with ❤️ — Works offline</div>
-</div>
-
-<script>
+</div><script>
 // --- GK question pool ---
 const questionPool = [
   {q:'What is the capital of India?', options:['Mumbai','Delhi','Kolkata','Chennai'], answer:1},
@@ -93,6 +88,7 @@ const scoreDisplay = document.getElementById('scoreDisplay');
 const progressEl = document.getElementById('progress');
 const levelDisplay = document.getElementById('levelDisplay');
 const timerDisplay = document.getElementById('timerDisplay');
+const rewardAdBtn = document.getElementById('rewardAdBtn');
 
 function startTimer(){
   clearInterval(timer);
@@ -120,6 +116,7 @@ function loadQuestion(){
     btn.addEventListener('click',()=>selectAnswer(optObj.idx,btn));
     optionsEl.appendChild(btn);
   });
+  rewardAdBtn.style.display = 'none';
   updateProgress();
   document.body.style.background = `linear-gradient(135deg, hsl(${(currentLevel+1)%360*0.36},70%,15%), hsl(${(currentLevel+1)%360*0.36},70%,25%))`;
 }
@@ -137,43 +134,61 @@ function selectAnswer(i,btn){
     btn.classList.add('wrong');
   }
   scoreDisplay.textContent = `Score: ${score}`;
-  setTimeout(nextQuestion, 1000);
+  setTimeout(nextQuestionOrReward, 1000);
 }
 
 function skipQuestion(){
   const buttons = document.querySelectorAll('.option');
   buttons.forEach(b=>b.disabled=true);
-  setTimeout(nextQuestion, 1000);
+  setTimeout(nextQuestionOrReward, 1000);
 }
 
-function nextQuestion(){
+function nextQuestionOrReward(){
   currentIndex++;
   const levelData = levels[currentLevel];
   if(currentIndex >= levelData.questions.length){
     if(levelScore >= levelData.minScore){
-      alert(`Level ${currentLevel+1} Complete!\nScore: ${levelScore}\nProceeding to next level.`);
-      currentLevel++;
-      currentIndex=0;
-      levelScore=0;
+      rewardAdBtn.style.display = 'inline-block';
     } else {
       alert(`Level ${currentLevel+1} Not Passed!\nScore: ${levelScore}\nReplay this level.`);
       currentIndex=0;
       levelScore=0;
+      loadQuestion();
     }
-  }
-  if(currentLevel < levels.length){
-    levelDisplay.textContent = `Level: ${currentLevel+1}`;
-    loadQuestion();
   } else {
-    showResult();
+    loadQuestion();
   }
 }
 
-function showResult(){
-  clearInterval(timer);
-  questionEl.textContent = `Quiz Complete!`;
-  optionsEl.innerHTML = `<h2>Your Total Score: ${score}</h2>`;
-  progressEl.style.width = '100%';
+rewardAdBtn.onclick = () => {
+  showRewardedAd();
+}
+
+function showRewardedAd(){
+  // PopCash Ad
+  var pop_tag = document.createElement('script');
+  pop_tag.src='//cdn.popcash.net/show.js';
+  document.body.appendChild(pop_tag);
+  pop_tag.onerror = function() {
+    var pop_tag2 = document.createElement('script');
+    pop_tag2.src='//cdn2.popcash.net/show.js';
+    document.body.appendChild(pop_tag2);
+  };
+  // Adsterra Banner
+  var adsterra = document.createElement('script');
+  adsterra.async = true;
+  adsterra.src = '//www.topcreativeformat.com/bnr.js';
+  adsterra.dataset.id = 'YOUR_ADSTERRA_CODE';
+  document.body.appendChild(adsterra);
+  setTimeout(()=>{
+    alert('✅ Level Unlocked!');
+    currentLevel++;
+    currentIndex=0;
+    levelScore=0;
+    rewardAdBtn.style.display = 'none';
+    levelDisplay.textContent = `Level: ${currentLevel+1}`;
+    loadQuestion();
+  },1000);
 }
 
 function updateProgress(){
@@ -182,10 +197,7 @@ function updateProgress(){
 }
 
 loadQuestion();
-</script>
-
-<!-- ✅ PopCash Ads Script -->
-<script type="text/javascript">
+</script><!-- ✅ PopCash Ads Script --><script type="text/javascript">
    var uid = '496125';
    var wid = '747430';
    var pop_fback = 'up';
@@ -197,9 +209,5 @@ loadQuestion();
       pop_tag.src='//cdn2.popcash.net/show.js';
       document.body.appendChild(pop_tag)
    };
-</script>
-</body>
-</html>
-
-</body>
+</script></body>
 </html>
