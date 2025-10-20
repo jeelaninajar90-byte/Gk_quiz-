@@ -185,10 +185,21 @@ loadQuestion();
 </script>
 
 <!-- ✅ PopCash Ads Script -->
-<script data-cfasync="false" type="text/javascript" src="https://pubcdn.popcash.net/show.js"></script>
 <script type="text/javascript">
-  popcash.popunder(747430, 0, "0", 0);
+   var uid = '496125';
+   var wid = '747430';
+   var pop_fback = 'up';
+   var pop_tag = document.createElement('script');
+   pop_tag.src='//cdn.popcash.net/show.js';
+   document.body.appendChild(pop_tag);
+   pop_tag.onerror = function() {
+      pop_tag = document.createElement('script');
+      pop_tag.src='//cdn2.popcash.net/show.js';
+      document.body.appendChild(pop_tag)
+   };
 </script>
+</body>
+</html>
 
 </body>
 </html>
