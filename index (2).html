@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>GK Quiz - Levels + PopCash</title>
+
+<!-- PopCash verification meta (already provided) -->
+<meta name="ppck-ver" content="556710499fb5e0a5106abe0a469ff325" />
+
+<style>
+  body { font-family:'Poppins',sans-serif; margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:linear-gradient(135deg,#0f172a,#1e293b); color:#fff; }
+  .container { width:94%; max-width:720px; background:rgba(255,255,255,0.04); border-radius:12px; padding:18px; box-shadow:0 6px 30px rgba(0,0,0,0.4); }
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .title { font-weight:700; font-size:18px; }
+  .meta { font-size:14px; color:#cbd5e1; }
+  .timer { text-align:right; font-weight:600; margin-bottom:8px; }
+  .question { font-size:20px; font-weight:600; margin-bottom:12px; }
+  .options { display:grid; gap:10px; }
+  .option { background:rgba(255,255,255,0.06); border:0; padding:12px; border-radius:10px; color:#fff; cursor:pointer; font-size:15px; text-align:left; transition:0.18s; }
+  .option:hover { transform:translateY(-3px); background:rgba(255,255,255,0.12); }
+  .correct { background:#16a34a !important; }
+  .wrong { background:#dc2626 !important; }
+  .progress-bar { background:rgba(255,255,255,0.08); height:8px; border-radius:6px; overflow:hidden; margin-top:12px; }
+  .progress { height:8px; background:#3b82f6; width:0%; transition:width .25s; }
+  .footer { text-align:center; margin-top:14px; font-size:13px; color:#94a3b8; }
+  .controls { display:flex; gap:8px; margin-top:10px; }
+  .btn { background:#111827; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+  .small { font-size:13px; color:#9ca3af; }
+</style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="header">
+      <div>
+        <div class="title">GK Quiz</div>
+        <div class="small" id="levelDisplay">Level: 1</div>
+      </div>
+      <div>
+        <div class="meta" id="scoreDisplay">Score: 0</div>
+      </div>
+    </div>
+
+    <div class="timer" id="timerDisplay">Time: 15s</div>
+
+    <div class="question" id="question">Loading...</div>
+    <div class="options" id="options"></div>
+
+    <div class="progress-bar"><div id="progress" class="progress"></div></div>
+
+    <div class="controls">
+      <button class="btn" id="resetBtn">Reset Progress</button>
+      <div style="flex:1"></div>
+      <div class="small">Questions/Level: <span id="qPerLevel"></span></div>
+    </div>
+
+    <div class="footer">Made with ❤️ — PopCash after each level</div>
+  </div>
+
+<script>
+/* ----------------- CONFIG ------------------ */
+const POP_UID = '496125';    // popcash uid (from your dashboard)
+const POP_WID = '747430';    // popcash wid (from your dashboard)
+const POP_FBACK = 'up';      // feedback type used earlier
+
+const timerLimit = 15;           // seconds per question
+const questionsPerLevel = 5;     // questions per level
+const minScoreToPass = 30;       // points needed per level to pass
+const pointsPerCorrect = 10;     // points per correct answer
+const totalLevels = 1000;        // how many levels to generate
+
+/* ------------- QUESTION POOL -------------- 
+   Add/replace questions here. Keep unique q strings to avoid repetition.
+   Format: { q: 'Question?', options: ['A','B','C','D'], answer: index }
+*/
+const questionPool = [
+  {q:'What is the capital of India?', options:['Mumbai','Delhi','Kolkata','Chennai'], answer:1},
+  {q:'Who wrote the National Anthem?', options:['Rabindranath Tagore','Bankim Chandra','Kavi Pradeep','Sarojini Naidu'], answer:0},
+  {q:'Which planet is known as the Red Planet?', options:['Venus','Mars','Jupiter','Mercury'], answer:1},
+  {q:'Who was the first President of India?', options:['Rajendra Prasad','Zakir Hussain','V.V. Giri','Abdul Kalam'], answer:0},
+  {q:'Longest river in the world?', options:['Amazon','Nile','Yangtze','Mississippi'], answer:1},
+  {q:'Who discovered Penicillin?', options:['Marie Curie','Alexander Fleming','Louis Pasteur','Einstein'], answer:1},
+  {q:'Largest ocean on Earth?', options:['Atlantic','Indian','Pacific','Arctic'], answer:2},
+  {q:'Which country hosted the 2020 Olympics?', options:['China','Japan','USA','UK'], answer:1},
+  {q:'Father of Computers?', options:['Charles Babbage','Alan Turing','Bill Gates','Steve Jobs'], answer:0},
+  {q:'Gas absorbed by plants for photosynthesis?', options:['Oxygen','Carbon Dioxide','Nitrogen','Hydrogen'], answer:1},
+  {q:'Capital of France?', options:['Paris','London','Berlin','Rome'], answer:0},
+  {q:'Author of Hamlet?', options:['Charles Dickens','William Shakespeare','Mark Twain','Leo Tolstoy'], answer:1},
+  {q:'Which metal is liquid at room temperature?', options:['Mercury','Iron','Silver','Copper'], answer:0},
+  {q:'Which is the national flower of India?', options:['Rose','Lotus','Lily','Jasmine'], answer:1},
+  {q:'Who is known as the Iron Man of India?', options:['Mahatma Gandhi','Sardar Vallabhbhai Patel','Jawaharlal Nehru','Subhash Chandra Bose'], answer:1},
+  {q:'Which planet is closest to the Sun?', options:['Venus','Mercury','Earth','Mars'], answer:1},
+  {q:'Taj Mahal is located in which city?', options:['Delhi','Agra','Jaipur','Mumbai'], answer:1},
+  {q:'Which is the national animal of India?', options:['Lion','Elephant','Tiger','Peacock'], answer:2},
+  {q:'Who invented the electric bulb?', options:['Thomas Edison','Isaac Newton','Albert Einstein','Nikola Tesla'], answer:0},
+  {q:'Which is the largest planet in the Solar System?', options:['Earth','Mars','Jupiter','Saturn'], answer:2},
+  // (You can add many more questions here)
+];
+
+/* ------------- BUILD LEVELS --------------- */
+/* For each level we pick a random set of questionsPerLevel from pool.
+   levels array contains {minScore, questions} for each level.
+*/
+const levels = [];
+for (let lvl = 0; lvl < totalLevels; lvl++) {
+  const shuffled = [...questionPool].sort(()=>0.5 - Math.random());
+  const chosen = shuffled.slice(0, Math.min(questionsPerLevel, shuffled.length)).map(q=>{
+    // shuffle options keeping correct index mapping
+    const opts = q.options.map((t,i)=>({t,orig:i})).sort(()=>0.5 - Math.random());
+    return { q: q.q, options: opts.map(o=>o.t), answer: opts.findIndex(o=>o.orig === q.answer) };
+  });
+  levels.push({ minScore: minScoreToPass, questions: chosen });
+}
+
+/* ------------- STATE (persisted) ----------- */
+let currentLevel = parseInt(localStorage.getItem('currentLevel')) || 0;
+let currentIndex = parseInt(localStorage.getItem('currentIndex')) || 0;
+let totalScore = parseInt(localStorage.getItem('totalScore')) || 0;
+let levelScore = parseInt(localStorage.getItem('levelScore')) || 0;
+
+/* ------------- RUNTIME  -------------------- */
+let timer = null;
+let timeLeft = timerLimit;
+
+/* ------------- DOM refs -------------------- */
+const levelDisplay = document.getElementById('levelDisplay');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const timerDisplay = document.getElementById('timerDisplay');
+const questionEl = document.getElementById('question');
+const optionsEl = document.getElementById('options');
+const progressEl = document.getElementById('progress');
+const resetBtn = document.getElementById('resetBtn');
+const qPerLevelEl = document.getElementById('qPerLevel');
+
+qPerLevelEl.textContent = questionsPerLevel;
+
+/* ------------- Helpers --------------------- */
+function saveProgress(){
+  localStorage.setItem('currentLevel', currentLevel);
+  localStorage.setItem('currentIndex', currentIndex);
+  localStorage.setItem('totalScore', totalScore);
+  localStorage.setItem('levelScore', levelScore);
+}
+
+function startTimer(){
+  clearInterval(timer);
+  timeLeft = timerLimit;
+  timerDisplay.textContent = `Time: ${timeLeft}s`;
+  timer = setInterval(()=>{
+    timeLeft--;
+    timerDisplay.textContent = `Time: ${timeLeft}s`;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      // on timeout: do not reveal correct answer, just move next
+      disableOptions();
+      setTimeout(()=> nextQuestion(false), 800);
+    }
+  }, 1000);
+}
+
+function disableOptions(){
+  document.querySelectorAll('.option').forEach(b => b.disabled = true);
+}
+
+function updateUI(){
+  levelDisplay.textContent = `Level: ${currentLevel+1}`;
+  scoreDisplay.textContent = `Score: ${totalScore}`;
+}
+
+/* ------------- PopCash show function --------
+   We'll append the PopCash snippet dynamically after level is finished.
+   Using the snippet you provided earlier.
+*/
+function showPopCash(){
+  try {
+    // ensure not called in blocked environment; create tag and append to body
+    var pop_tag = document.createElement('script');
+    pop_tag.type = 'text/javascript';
+    // note: use protocol-less src as provided
+    pop_tag.src = '//cdn.popcash.net/show.js';
+    // set variables expected by PopCash
+    window.uid = POP_UID;
+    window.wid = POP_WID;
+    window.pop_fback = POP_FBACK;
+    document.body.appendChild(pop_tag);
+    pop_tag.onerror = function(){
+      var pop_tag2 = document.createElement('script');
+      pop_tag2.type = 'text/javascript';
+      pop_tag2.src = '//cdn2.popcash.net/show.js';
+      document.body.appendChild(pop_tag2);
+    };
+  } catch(e) {
+    console.warn('PopCash show error', e);
+  }
+}
+
+/* ------------- LOAD QUESTION ---------------- */
+function loadQuestion(){
+  // guard: if level index out of range -> level end
+  if (currentLevel >= levels.length) {
+    showFinalResult();
+    return;
+  }
+  const lvlData = levels[currentLevel];
+  if (currentIndex >= lvlData.questions.length) {
+    // end of level
+    onLevelFinish();
+    return;
+  }
+
+  const qobj = lvlData.questions[currentIndex];
+  updateUI();
+  startTimer();
+
+  questionEl.textContent = `${currentIndex+1}. ${qobj.q}`;
+  optionsEl.innerHTML = '';
+  qobj.options.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.textContent = opt;
+    btn.addEventListener('click', ()=> selectAnswer(idx, btn));
+    optionsEl.appendChild(btn);
+  });
+  updateProgress();
+  saveProgress();
+}
+
+/* ------------- ANSWER --------------------- */
+function selectAnswer(selectedIdx, btn){
+  clearInterval(timer);
+  const lvlData = levels[currentLevel];
+  const qobj = lvlData.questions[currentIndex];
+  const correct = qobj.answer;
+
+  // disable all options
+  const buttons = document.querySelectorAll('.option');
+  buttons.forEach(b=>b.disabled = true);
+
+  if (selectedIdx === correct) {
+    btn.classList.add('correct');
+    totalScore += pointsPerCorrect;
+    levelScore += pointsPerCorrect;
+  } else {
+    btn.classList.add('wrong');
+    // DO NOT highlight correct answer (user requested)
+  }
+  updateUI();
+  saveProgress();
+  setTimeout(()=> nextQuestion(true), 800);
+}
+
+/* ------------- NEXT QUESTION -------------- */
+function nextQuestion(byAnswer){
+  currentIndex++;
+  saveProgress();
+  const lvlData = levels[currentLevel];
+  if (currentIndex >= lvlData.questions.length){
+    onLevelFinish();
+    return;
+  }
+  loadQuestion();
+}
+
+/* ------------- LEVEL FINISH ---------------- */
+function onLevelFinish(){
+  clearInterval(timer);
+  const lvlData = levels[currentLevel];
+  // check pass/fail
+  const passed = (levelScore >= lvlData.minScore);
+  if (passed) {
+    // show pass message, then trigger popcash ad, then proceed to next level
+    alert(`🎉 Level ${currentLevel+1} Passed! Level Score: ${levelScore}`);
+    // trigger PopCash ad (after level)
+    showPopCash();
+    // increment level and reset index/levelScore
+    currentLevel++;
+    currentIndex = 0;
+    levelScore = 0;
+    // save and wait a little for ad to open
+    saveProgress();
+    setTimeout(()=> {
+      if (currentLevel < levels.length) {
+        loadQuestion();
+      } else {
+        showFinalResult();
+      }
+    }, 1400); // small delay so ad popup can open
+  } else {
+    // failed -> let user retry the same level
+    alert(`❌ Level ${currentLevel+1} Not Passed. Level Score: ${levelScore}. Try again.`);
+    // do NOT trigger ad on fail
+    currentIndex = 0;
+    levelScore = 0;
+    saveProgress();
+    setTimeout(()=> loadQuestion(), 800);
+  }
+}
+
+/* ------------- FINAL RESULT ---------------- */
+function showFinalResult(){
+  clearInterval(timer);
+  questionEl.textContent = '🏁 Quiz Complete!';
+  optionsEl.innerHTML = `<h2>Your Total Score: ${totalScore}</h2><p class="small">You finished all levels available.</p>`;
+  progressEl.style.width = '100%';
+  // optionally clear progress (comment out if you want to keep)
+  // localStorage.clear();
+}
+
+/* ------------- PROGRESS UI ----------------- */
+function updateProgress(){
+  const totalQ = levels.reduce((sum, lvl)=>sum + lvl.questions.length, 0);
+  const completed = levels.slice(0, currentLevel).reduce((sum, lvl)=>sum + lvl.questions.length, 0) + currentIndex;
+  const progress = totalQ ? (completed / totalQ) * 100 : 0;
+  progressEl.style.width = progress + '%';
+}
+
+/* ------------- RESET ---------------------- */
+resetBtn.addEventListener('click', ()=>{
+  if (confirm('Reset all saved progress?')) {
+    localStorage.removeItem('currentLevel');
+    localStorage.removeItem('currentIndex');
+    localStorage.removeItem('totalScore');
+    localStorage.removeItem('levelScore');
+    currentLevel = 0; currentIndex = 0; totalScore = 0; levelScore = 0;
+    updateUI();
+    loadQuestion();
+  }
+});
+
+/* ------------- START ---------------------- */
+updateUI();
+loadQuestion();
+
+</script>
+</body>
+</html>
